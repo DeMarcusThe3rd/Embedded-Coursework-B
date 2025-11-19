@@ -21,9 +21,9 @@ ISR:
     btfss 		STATUS, Z			; If match, Z = 1 then skip, else continue
     retfie        					; wait for 2 overflows
 
+    clrf 		overflow_count		; ready for next overflow cycle
     movf        ADRESH, W       ; Copy the display to the LEDs
     movwf       PORTD
-    clrf 		overflow_count		; ready for next overflow cycle
 
     ; reload Timer1
     movlw		0xDB
@@ -34,17 +34,21 @@ ISR:
     retfie
 
 Start:
-	banksel		ANSELH
-    clrf 		ANSELH           ; Digital for Port B
-	movlw       0xFF           ; we want all Port A pins Analog
+    banksel     ANSEL
+    movlw       b'00000001'    ; AN0 = analog, others digital (set bits for analog RAx you need)
     movwf       ANSEL
-    banksel		TRISD
-    clrf 		TRISD            ; Port D all output
+    banksel		ANSELH
+    clrf 		ANSELH           ; Digital for Port B
+    banksel     TRISA
+    movlw       b'00000001'    ; AN0 = analog, others digital (set bits for analog RAx you need)
+    movwf       TRISA           ; Make PortA all input
+    banksel     TRISB
     bsf 		TRISB, 0         ; RB0 Input
     bsf 		TRISB, 1         ; RB1 Input
-    movlw       0xFF
-    movwf       TRISA           ; Make PortA all input
-    bcf 		STATUS, RP0     ; Bank 0
+    banksel		TRISD
+    clrf 		TRISD            ; Port D all output
+
+    banksel     PORTD
 	clrf      	PORTD           ; off all portd
 	clrf 		overflow_count
 
@@ -61,7 +65,7 @@ Start:
     movlw       0x00           ; Left Justified, all PortA analog
     movwf       ADCON1
     banksel     ADCON0
-    movlw       b'01000101'
+    movlw       0x41
     movwf       ADCON0         ; configure A2D for Fosc/8, Channel 0 (RA0), and turn on the A2D module
 
     ;interrupt stuff
@@ -72,19 +76,22 @@ Start:
 	bsf 	   	INTCON, PEIE   	; enable peripheral interrupts
 	bsf 	   	INTCON, GIE    	; enable global interrupts
 
-WaitADC:
-    nop                      ; wait 5uS for A2D amp to settle and capacitor to charge.
-    nop                      ; wait 1uS
-    nop                      ; wait 1uS
-    nop                      ; wait 1uS 
-    nop                      ; wait 1uS
-    bsf         ADCON0,GO_DONE ; start conversion
-
 Main:
     btfss		PORTB, 0     ; if press will clear, then go State0 (idle) 
     goto State0
-    btfsc       ADCON0,GO_DONE ; this bit will change to zero when the conversion is complete
-	goto        WaitADC
+    nop
+    nop
+    nop
+    nop
+    nop
+
+    banksel		ADCON0
+    bsf			ADCON0, GO       ; start conversion
+
+WaitADC:
+    banksel 	ADCON0
+    btfsc 		ADCON0, GO     ; still converting?
+    goto WaitADC    			; if GO is 1 means not done
     goto Main
 
 State0:
