@@ -1,4 +1,9 @@
-	#include <p16F887.inc>
+; State 1 = 0 to 60 (0 - 0.294 V)
+; State 2 = 60 to 240 (0.294 - 1.176 V)
+; State 3 = 240 to 360 (1.176 - 1.17604 V)
+; State 4 = 360 to 1023 (1.17604 - 5 V )
+
+    #include <p16F887.inc>
 		__CONFIG    _CONFIG1, _LVP_OFF & _FCMEN_OFF & _IESO_OFF & _BOR_OFF & _CPD_OFF & _CP_OFF & _MCLRE_OFF & _PWRTE_ON & _WDT_OFF & _INTRC_OSC_NOCLKOUT
 		__CONFIG    _CONFIG2, _WRT_OFF & _BOR21V
 
@@ -22,10 +27,41 @@ ISR:
     retfie        					; wait for 2 overflows
 
     clrf 		overflow_count		; ready for next overflow cycle
-    movf        ADRESH, W       ; Copy the display to the LEDs
-    movwf       PORTD
 
-    ; reload Timer1
+    ;thresholding logic 
+State1:
+    movf        ADRESH, W       
+    sublw       .15             ; W = 15 - ADRESH
+    btfss       STATUS, C       ; if C = 0, means ADRESH > threshold, go next threshold and check
+    goto    State2
+    movlw       b'00000001'    ; Light one LED 
+    movwf       PORTD
+    goto    ReloadTimer
+
+State2:
+    movf        ADRESH, W       
+    sublw       .60             ; W = 60 - ADRESH
+    btfss       STATUS, C       ; if C = 0, means ADRESH > threshold, go next threshold and check
+    goto    State3
+    movlw       b'00000011'    ; Light one LED 
+    movwf       PORTD
+    goto    ReloadTimer
+
+State3:
+    movf        ADRESH, W       
+    sublw       .90             ; W = 90 - ADRESH
+    btfss       STATUS, C       ; if C = 0, means ADRESH > threshold, go next threshold and check
+    goto    State4
+    movlw       b'00000111'    ; Light one LED 
+    movwf       PORTD
+    goto    ReloadTimer
+
+State4:
+    movlw       b'00001111'    ; Light one LED 
+    movwf       PORTD
+    goto    ReloadTimer
+
+ReloadTimer:
     movlw		0xDB
     movwf		TMR1H
     movlw		0x08
