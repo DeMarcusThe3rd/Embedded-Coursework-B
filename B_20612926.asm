@@ -1,21 +1,21 @@
 ; State 1 = 0 to 60 (0 - 0.294 V)
 ; State 2 = 60 to 240 (0.294 - 1.176 V)
-; State 3 = 240 to 360 (1.176 - 1.17604 V)
-; State 4 = 360 to 1023 (1.17604 - 5 V )
+; State 3 = 240 to 360 (1.176 - 1.760 V)
+; State 4 = 360 to 1023 (1.760 - 5 V )
 
-    #include <p16F887.inc>
-		__CONFIG    _CONFIG1, _LVP_OFF & _FCMEN_OFF & _IESO_OFF & _BOR_OFF & _CPD_OFF & _CP_OFF & _MCLRE_OFF & _PWRTE_ON & _WDT_OFF & _INTRC_OSC_NOCLKOUT
-		__CONFIG    _CONFIG2, _WRT_OFF & _BOR21V
+#include <p16F887.inc>
+    __CONFIG    _CONFIG1, _LVP_OFF & _FCMEN_OFF & _IESO_OFF & _BOR_OFF & _CPD_OFF & _CP_OFF & _MCLRE_OFF & _PWRTE_ON & _WDT_OFF & _INTRC_OSC_NOCLKOUT
+    __CONFIG    _CONFIG2, _WRT_OFF & _BOR21V
 
-	cblock 0x20       
-    	overflow_count
-    endc
+cblock 0x20       
+    overflow_count
+endc
 
-    org 0
-    goto Start
+org 0
+goto Start
 
-    org 4
-	goto ISR
+org 4
+goto ISR
 
 ISR:
     bcf 		PIR1, TMR1IF		; clear the flag
